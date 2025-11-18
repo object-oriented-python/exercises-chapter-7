@@ -1,11 +1,85 @@
-    name: GitHub Classroom Workflow
-
-    on: [push]
-
-    jobs:
-      build:
-        name: Autograding
-        runs-on: ubuntu-latest
-        steps:
-          - uses: actions/checkout@v4
-          - uses: education/autograding@v1
+name: Autograding Tests
+'on':
+- push
+- repository_dispatch
+permissions:
+  actions: read
+  checks: write
+  contents: read
+jobs:
+  run-autograding-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Install Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - id: setup
+      name: setup
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        command: venv/bin/python -m pip install setuptools pytest flake8 pep8-naming
+          flake8-docstrings numpy
+        max-score: null
+        setup-command: python3 -m venv venv
+        test-name: setup
+        timeout: 1
+    - id: setup-course-repo
+      name: setup-course-repo
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        command: venv/bin/python -m pip install object-oriented-programming/
+        max-score: null
+        setup-command: git clone https://github.com/object-oriented-python/object-oriented-programming.git
+        test-name: setup-course-repo
+        timeout: 1
+    - id: exercise-7-1
+      name: exercise-7-1
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        command: venv/bin/python -m pytest tests/test_exercise_7_1.py
+        max-score: 1
+        setup-command: ''
+        test-name: exercise-7-1
+        timeout: 1
+    - id: exercise-7-2-1
+      name: exercise-7-2-1
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        command: venv/bin/python -m pytest tests/test_exercise_7_2_1.py
+        max-score: 1
+        setup-command: ''
+        test-name: exercise-7-2-1
+        timeout: 1
+    - id: exercise-7-2-2
+      name: exercise-7-2-2
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        command: venv/bin/python -m pytest tests/test_exercise_7_2_2.py
+        max-score: 1
+        setup-command: ''
+        test-name: exercise-7-2-2
+        timeout: 1
+    - id: flake8
+      name: flake8
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        command: venv/bin/python -m flake8
+        max-score: 1
+        setup-command: ''
+        test-name: flake8
+        timeout: 1
+    - env:
+        EXERCISE-7-1_RESULTS: ${{steps.exercise-7-1.outputs.result}}
+        EXERCISE-7-2-1_RESULTS: ${{steps.exercise-7-2-1.outputs.result}}
+        EXERCISE-7-2-2_RESULTS: ${{steps.exercise-7-2-2.outputs.result}}
+        FLAKE8_RESULTS: ${{steps.flake8.outputs.result}}
+        SETUP-COURSE-REPO_RESULTS: ${{steps.setup-course-repo.outputs.result}}
+        SETUP_RESULTS: ${{steps.setup.outputs.result}}
+      name: Autograding Reporter
+      uses: classroom-resources/autograding-grading-reporter@v1
+      with:
+        runners: setup, setup-course-repo, exercise-7-1, exercise-7-2-1, exercise-7-2-2,
+          flake8
